@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,6 +116,9 @@ export default function Home() {
   const [result, setResult] = useState<ExplainResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lang, setLang] = useState<"es" | "en">("es");
+  const [perfTooltip, setPerfTooltip] = useState(false);
+  const [perfPos, setPerfPos] = useState({ top: 0, left: 0 });
+  const perfRef = React.useRef<HTMLButtonElement>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -346,7 +349,7 @@ export default function Home() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 overflow-visible">
                     <p className="text-foreground text-sm leading-relaxed whitespace-pre-line">
                       {result.explanation[lang]}
                     </p>
@@ -355,35 +358,18 @@ export default function Home() {
                         {CTA_LABELS[result.explanation.cta]}
                       </button>
                     )}
-                    <Dialog>
-                      <DialogTrigger
-                        render={<button className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors" />}
-                      >
-                        ⚡ {result.performance.totalLatencyMs}ms · {result.performance.totalTokens} tokens
-                      </DialogTrigger>
-                      <DialogContent className="bg-[#141414] border-[#2a2a2a] text-foreground max-w-sm">
-                        <DialogHeader>
-                          <DialogTitle className="text-sm font-semibold text-foreground">Performance</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 pt-1">
-                          <div className="grid grid-cols-2 gap-2">
-                            <MetricTile label="Total Latency" value={String(result.performance.totalLatencyMs)} unit="ms" />
-                            <MetricTile label="LLM Latency" value={String(result.performance.llmLatencyMs)} unit="ms" />
-                            <MetricTile label="DB + BIN" value={String(result.performance.dbLatencyMs)} unit="ms" />
-                            <MetricTile label="Est. Cost" value={`$${result.performance.estimatedCostUsd.toFixed(6)}`} highlight />
-                          </div>
-                          <Separator className="bg-border" />
-                          <dl className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-xs">
-                            <Row label="Model" value={<span className="font-mono text-primary">{result.performance.model}</span>} />
-                            <Row label="Total tokens" value={String(result.performance.totalTokens)} />
-                            <Row label="Input tokens" value={String(result.performance.inputTokens)} />
-                            <Row label="Output tokens" value={String(result.performance.outputTokens)} />
-                            <Row label="Stop reason" value={result.performance.stopReason ?? "—"} />
-                            <Row label="Pricing" value="$3 / 1M in · $15 / 1M out" />
-                          </dl>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    <button
+                      ref={perfRef}
+                      className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
+                      onMouseEnter={() => {
+                        const rect = perfRef.current?.getBoundingClientRect();
+                        if (rect) setPerfPos({ top: rect.bottom + 8, left: rect.left });
+                        setPerfTooltip(true);
+                      }}
+                      onMouseLeave={() => setPerfTooltip(false)}
+                    >
+                      ⚡ {result.performance.totalLatencyMs}ms · {result.performance.totalTokens} tokens
+                    </button>
                   </CardContent>
                 </Card>
               </div>
@@ -711,6 +697,33 @@ export default function Home() {
 
         </Tabs>
       </main>
+
+      {/* Performance tooltip — fixed so it escapes all overflow containers */}
+      {perfTooltip && result && (
+        <div
+          className="fixed z-[9999] w-56 rounded-lg border border-[#2a2a2a] bg-[#141414] shadow-xl overflow-hidden pointer-events-none"
+          style={{ top: perfPos.top, left: perfPos.left }}
+        >
+          <div className="px-3 py-2 border-b border-[#2a2a2a]">
+            <p className="text-[10px] font-semibold text-[#888] uppercase tracking-widest">Performance</p>
+          </div>
+          <div className="px-3 py-2 space-y-1.5">
+            {[
+              ["Total latency", `${result.performance.totalLatencyMs}ms`, false],
+              ["LLM latency", `${result.performance.llmLatencyMs}ms`, false],
+              ["DB + BIN", `${result.performance.dbLatencyMs}ms`, false],
+              ["Tokens", `${result.performance.totalTokens} (${result.performance.inputTokens} · ${result.performance.outputTokens})`, false],
+              ["Est. cost", `$${result.performance.estimatedCostUsd.toFixed(6)}`, true],
+              ["Model", result.performance.model, true],
+            ].map(([label, value, accent]) => (
+              <div key={String(label)} className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-[#888] shrink-0">{label}</span>
+                <span className={`text-[11px] font-medium font-mono truncate ${accent ? "text-[#7eda2c]" : "text-white"}`}>{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
