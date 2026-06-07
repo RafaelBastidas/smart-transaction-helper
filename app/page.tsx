@@ -363,7 +363,7 @@ export default function Home() {
                       className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
                       onMouseEnter={() => {
                         const rect = perfRef.current?.getBoundingClientRect();
-                        if (rect) setPerfPos({ top: rect.bottom + 8, left: rect.left });
+                        if (rect) setPerfPos({ top: rect.top - 8, left: rect.left });
                         setPerfTooltip(true);
                       }}
                       onMouseLeave={() => setPerfTooltip(false)}
@@ -701,7 +701,7 @@ export default function Home() {
       {/* Performance tooltip — fixed so it escapes all overflow containers */}
       {perfTooltip && result && (
         <div
-          className="fixed z-[9999] w-56 rounded-lg border border-[#2a2a2a] bg-[#141414] shadow-xl overflow-hidden pointer-events-none"
+          className="fixed z-[9999] w-56 rounded-lg border border-[#2a2a2a] bg-[#141414] shadow-xl overflow-hidden pointer-events-none -translate-y-full"
           style={{ top: perfPos.top, left: perfPos.left }}
         >
           <div className="px-3 py-2 border-b border-[#2a2a2a]">
